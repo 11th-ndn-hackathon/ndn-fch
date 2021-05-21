@@ -6,6 +6,11 @@ import (
 	"strconv"
 )
 
+// LonLat is a tuple of longitute,latitude in GeoJSON format.
+// https://datatracker.ietf.org/doc/html/rfc7946#section-3.1.1
+type LonLat [2]float64
+
+// List returns a list of known routers.
 func List() (routers []Router) {
 	testbedRoutersLock.RLock()
 	defer testbedRoutersLock.RUnlock()
@@ -14,8 +19,7 @@ func List() (routers []Router) {
 	return routers
 }
 
-type LonLat [2]float64
-
+// Router contains information about a router.
 type Router struct {
 	ID       string
 	Position [2]float64
