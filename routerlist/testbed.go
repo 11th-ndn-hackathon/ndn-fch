@@ -2,10 +2,8 @@ package routerlist
 
 import (
 	"encoding/json"
-	"flag"
 	"io"
 	"io/ioutil"
-	"log"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -14,6 +12,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/11th-ndn-hackathon/ndn-fch-control/logging"
+	"github.com/11th-ndn-hackathon/ndn-fch-control/model"
+	"go.uber.org/zap"
 	"inet.af/netaddr"
 )
 
@@ -22,10 +23,10 @@ const (
 )
 
 var (
-	testbedRouters     []Router
+	testbedRouters     []model.Router
 	testbedRoutersLock sync.RWMutex
-
-	testbedRoutersFile = flag.String("testbed-routers-file", "/tmp/testbed-routers.json", "testbed routers list cache file")
+	testbedRoutersFile string
+	testbedLogger      = logging.New("routerlist.testbed")
 )
 
 type testbedNode struct {
@@ -38,12 +39,12 @@ type testbedNode struct {
 	FchEnabled   bool      `json:"fch-enabled"`
 }
 
-func (n testbedNode) Router() (r *Router) {
+func (n testbedNode) Router() (r *model.Router) {
 	if !n.FchEnabled {
 		return nil
 	}
 
-	r = &Router{
+	r = &model.Router{
 		ID:            n.ShortName,
 		Prefix:        strings.TrimPrefix(n.Prefix, "ndn:"),
 		UDPPort:       6363,
@@ -58,9 +59,9 @@ func (n testbedNode) Router() (r *Router) {
 
 	switch {
 	case len(n.RealPosition) == 2:
-		copy(r.Position[:], n.RealPosition)
+		r.Position[0], r.Position[1] = n.RealPosition[1], n.RealPosition[0]
 	case len(n.Position) == 2:
-		copy(r.Position[:], n.Position)
+		r.Position[0], r.Position[1] = n.Position[1], n.Position[0]
 	default:
 		return nil
 	}
@@ -80,7 +81,7 @@ func (n testbedNode) Router() (r *Router) {
 	return r
 }
 
-func fetchTestbedRouters() (routers []Router, e error) {
+func fetchTestbedRouters() (routers []model.Router, e error) {
 	response, e := http.Get(testbedNodesURI)
 	if e != nil {
 		return nil, e
@@ -109,20 +110,24 @@ func updateTestbedRouters() {
 
 	routers, e := fetchTestbedRouters()
 	if e != nil {
-		log.Println("fetchTestbedRouters", e)
+		testbedLogger.Error("fetch", zap.Error(e))
 		return
 	}
 	if e := saveTestbedRouters(routers); e != nil {
-		log.Println("saveTestbedRouters", e)
+		testbedLogger.Warn("save", zap.Error(e))
 	}
 
 	testbedRoutersLock.Lock()
 	defer testbedRoutersLock.Unlock()
+	testbedLogger.Debug("update",
+		zap.Int("old-len", len(testbedRouters)),
+		zap.Int("new-len", len(routers)),
+	)
 	testbedRouters = routers
 }
 
 func loadTestbedRouters() error {
-	file, e := os.Open(*testbedRoutersFile)
+	file, e := os.Open(testbedRoutersFile)
 	if e != nil {
 		return e
 	}
@@ -136,7 +141,7 @@ func loadTestbedRouters() error {
 	return json.Unmarshal(body, &testbedRouters)
 }
 
-func saveTestbedRouters(routers []Router) error {
+func saveTestbedRouters(routers []model.Router) error {
 	j, e := json.Marshal(routers)
 	if e != nil {
 		return e
@@ -157,12 +162,17 @@ func saveTestbedRouters(routers []Router) error {
 	}
 
 	tmpFile.Close()
-	return os.Rename(tmpName, *testbedRoutersFile)
+	return os.Rename(tmpName, testbedRoutersFile)
 }
 
 func init() {
+	testbedRoutersFile = os.Getenv("FCH_TESTBED_ROUTERS_FILE")
+	if testbedRoutersFile == "" {
+		testbedRoutersFile = "/tmp/testbed-routers.json"
+	}
+
 	if e := loadTestbedRouters(); e != nil {
-		log.Println("loadTestbedRouters", e)
+		testbedLogger.Warn("load", zap.Error(e), zap.String("filename", testbedRoutersFile))
 	}
 
 	go updateTestbedRouters()

@@ -3,9 +3,11 @@ package health
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"path"
 	"strings"
 )
 
@@ -35,6 +37,11 @@ func (c *HTTPClient) Probe(ctx context.Context, req ProbeRequest) (res ProbeResp
 		form.Add("router", s)
 	}
 
+	res = make(ProbeResponse)
+	if len(reqMap) == 0 {
+		return res, nil
+	}
+
 	hReq, e := http.NewRequestWithContext(ctx, http.MethodPost, c.probeUri, strings.NewReader(form.Encode()))
 	if e != nil {
 		return nil, e
@@ -44,6 +51,9 @@ func (c *HTTPClient) Probe(ctx context.Context, req ProbeRequest) (res ProbeResp
 	hRes, e := http.DefaultClient.Do(hReq)
 	if e != nil {
 		return nil, e
+	}
+	if hRes.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("HTTP %d", hRes.StatusCode)
 	}
 	body, e := io.ReadAll(hRes.Body)
 	if e != nil {
@@ -56,21 +66,19 @@ func (c *HTTPClient) Probe(ctx context.Context, req ProbeRequest) (res ProbeResp
 		return nil, e
 	}
 
-	res = make(ProbeResponse)
 	for s, r := range resMap {
 		res[reqMap[s]] = r
 	}
 	return res, nil
 }
 
-// NewClient creates a Client from base URI.
-func NewClient(uri string) (c *HTTPClient, e error) {
+// NewHTTPClient creates a Client from base URI.
+func NewHTTPClient(uri string) (c *HTTPClient, e error) {
 	u, e := url.Parse(uri)
 	if e != nil {
 		return nil, e
 	}
-
-	u.Path = "/probe"
+	u.Path = path.Join(u.Path, "probe")
 	c = &HTTPClient{
 		probeUri: u.String(),
 	}

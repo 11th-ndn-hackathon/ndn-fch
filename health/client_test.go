@@ -10,12 +10,12 @@ import (
 	"testing"
 
 	"github.com/11th-ndn-hackathon/ndn-fch-control/health"
-	"github.com/11th-ndn-hackathon/ndn-fch-control/routerlist"
+	"github.com/11th-ndn-hackathon/ndn-fch-control/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-var mockRouters = []routerlist.Router{
+var mockRouters = []model.Router{
 	{ID: "dual", Host: "dual.example.net", IPv4: true, IPv6: true,
 		UDPPort: 1201, WebSocketPort: 1202, HTTP3Port: 1203},
 	{ID: "only4", Host: "only4.example.net", IPv4: true, IPv6: false,
@@ -52,19 +52,19 @@ func TestClient(t *testing.T) {
 	ts := httptest.NewServer(&tm)
 	defer ts.Close()
 
-	c, e := health.NewClient(ts.URL)
+	c, e := health.NewHTTPClient(ts.URL)
 	require.NoError(e)
 
 	tests := []struct {
-		tr       health.TransportType
+		tr       model.TransportType
 		expected map[string]bool
 	}{
-		{health.TransportUDP4, map[string]bool{"dual": false, "only4": true, "udp": true}},
-		{health.TransportUDP6, map[string]bool{"dual": false, "only6": true, "udp": true}},
-		{health.TransportWebSocket4, map[string]bool{"dual": false, "only4": true, "wss": true}},
-		{health.TransportWebSocket6, map[string]bool{"dual": false, "only6": true, "wss": true}},
-		{health.TransportH3IPv4, map[string]bool{"dual": false, "only4": true, "h3": true}},
-		{health.TransportH3IPv6, map[string]bool{"dual": false, "only6": true, "h3": true}},
+		{model.TransportUDP4, map[string]bool{"dual": false, "only4": true, "udp": true}},
+		{model.TransportUDP6, map[string]bool{"dual": false, "only6": true, "udp": true}},
+		{model.TransportWebSocket4, map[string]bool{"dual": false, "only4": true, "wss": true}},
+		{model.TransportWebSocket6, map[string]bool{"dual": false, "only6": true, "wss": true}},
+		{model.TransportH3IPv4, map[string]bool{"dual": false, "only4": true, "h3": true}},
+		{model.TransportH3IPv6, map[string]bool{"dual": false, "only6": true, "h3": true}},
 	}
 
 	for _, tt := range tests {

@@ -1,4 +1,4 @@
-package routerlist
+package model
 
 import (
 	"net"
@@ -9,15 +9,6 @@ import (
 // LonLat is a tuple of longitute,latitude in GeoJSON format.
 // https://datatracker.ietf.org/doc/html/rfc7946#section-3.1.1
 type LonLat [2]float64
-
-// List returns a list of known routers.
-func List() (routers []Router) {
-	testbedRoutersLock.RLock()
-	defer testbedRoutersLock.RUnlock()
-	routers = append(routers, testbedRouters...)
-	routers = append(routers, yoursunnyRouters...)
-	return routers
-}
 
 // Router contains information about a router.
 type Router struct {
@@ -55,7 +46,7 @@ func (r Router) WebSocketURI() string {
 	return (&url.URL{
 		Scheme: "wss",
 		Host:   hostport,
-		Path:   "/ws",
+		Path:   "/ws/",
 	}).String()
 }
 
