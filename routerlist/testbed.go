@@ -147,22 +147,14 @@ func saveTestbedRouters(routers []model.Router) error {
 		return e
 	}
 
-	tmpFile, e := os.CreateTemp("", "")
+	f, e := os.Create(testbedRoutersFile)
 	if e != nil {
 		return e
 	}
-	tmpName := tmpFile.Name()
-	defer func() {
-		tmpFile.Close()
-		os.Remove(tmpName)
-	}()
+	defer f.Close()
 
-	if _, e := tmpFile.Write(j); e != nil {
-		return e
-	}
-
-	tmpFile.Close()
-	return os.Rename(tmpName, testbedRoutersFile)
+	_, e = f.Write(j)
+	return e
 }
 
 func init() {
