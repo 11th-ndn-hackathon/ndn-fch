@@ -28,7 +28,12 @@ var app = &cli.App{
 		},
 		&cli.StringFlag{
 			Name:     "probe",
-			Usage:    "health probe URI",
+			Usage:    "UDP/WebSockets health probe URI",
+			Required: true,
+		},
+		&cli.StringFlag{
+			Name:     "probe3",
+			Usage:    "HTTP3 health probe URI",
 			Required: true,
 		},
 		&cli.StringFlag{
@@ -46,7 +51,7 @@ var app = &cli.App{
 	Before: func(c *cli.Context) (e error) {
 		refreshInterval = time.Duration(math.MaxInt64(int64(refreshInterval), int64(time.Minute)))
 
-		if probe, e = health.NewHTTPDispatcher(c.String("probe")); e != nil {
+		if probe, e = health.NewHTTPDispatcher(c.String("probe"), c.String("probe3")); e != nil {
 			return cli.Exit(e, 1)
 		}
 
