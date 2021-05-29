@@ -1,62 +1,77 @@
 package model
 
 import (
+	"encoding/json"
 	"net"
 	"net/url"
 	"strconv"
 )
 
-// LonLat is a tuple of longitute,latitude in GeoJSON format.
-// https://datatracker.ietf.org/doc/html/rfc7946#section-3.1.1
-type LonLat [2]float64
-
 // Router contains information about a router.
 type Router struct {
-	ID       string
-	Position [2]float64
-	Prefix   string
+	ID       string `json:"id"`
+	Position LonLat `json:"position"`
+	Prefix   string `json:"prefix"`
 
-	Host          string
-	IPv4          bool
-	IPv6          bool
-	UDPPort       uint16
-	WebSocketPort uint16
-	HTTP3Port     uint16
+	Host          string `json:"host"`
+	IPv4          bool   `json:"ipv4"`
+	IPv6          bool   `json:"ipv6"`
+	UDPPort       uint16 `json:"udp-port,omitempty"`
+	WebSocketPort uint16 `json:"wss-port,omitempty"`
+	HTTP3Port     uint16 `json:"http3-port,omitempty"`
 }
 
-func (r Router) UDPHostPort() string {
-	if r.UDPPort == 0 {
-		return ""
+func (r Router) TransportString(tr TransportType, legacySyntax bool) string {
+	switch tr {
+	case TransportUDP:
+		if r.UDPPort == 0 {
+			return ""
+		}
+		if r.UDPPort == DefaultUDPPort && legacySyntax {
+			return r.Host
+		}
+		return net.JoinHostPort(r.Host, strconv.FormatUint(uint64(r.UDPPort), 10))
+	case TransportWebSocket:
+		if r.WebSocketPort == 0 {
+			return ""
+		}
+		if r.WebSocketPort == DefaultWebSocketPort && legacySyntax {
+			return r.Host
+		}
+		return (&url.URL{
+			Scheme: "wss",
+			Host:   net.JoinHostPort(r.Host, strconv.FormatUint(uint64(r.WebSocketPort), 10)),
+			Path:   "/ws/",
+		}).String()
+	case TransportH3:
+		if r.HTTP3Port == 0 {
+			return ""
+		}
+		return (&url.URL{
+			Scheme: "https",
+			Host:   net.JoinHostPort(r.Host, strconv.FormatUint(uint64(r.HTTP3Port), 10)),
+			Path:   "/ndn",
+		}).String()
 	}
-	return net.JoinHostPort(r.Host, strconv.FormatUint(uint64(r.UDPPort), 10))
+	return ""
 }
 
-func (r Router) WebSocketHostPort() string {
-	if r.WebSocketPort == 0 {
-		return ""
-	}
-	return net.JoinHostPort(r.Host, strconv.FormatUint(uint64(r.WebSocketPort), 10))
+// RouterAvail contains router availability information.
+type RouterAvail struct {
+	*Router
+	Available map[TransportIPFamily]bool
 }
 
-func (r Router) WebSocketURI() string {
-	hostport := r.WebSocketHostPort()
-	if hostport == "" {
-		return ""
+// MarshalJSON implements json.Marshaler interface.
+func (r RouterAvail) MarshalJSON() (j []byte, e error) {
+	s := struct {
+		*Router
+		Available []string `json:"available"`
+	}{r.Router, nil}
+	for tf, ok := range r.Available {
+		if ok {
+			s.Available = append(s.Available, tf.String())
+		}
 	}
-	return (&url.URL{
-		Scheme: "wss",
-		Host:   hostport,
-		Path:   "/ws/",
-	}).String()
-}
-
-func (r Router) HTTP3URI() string {
-	if r.HTTP3Port == 0 {
-		return ""
-	}
-	return (&url.URL{
-		Scheme: "https",
-		Host:   net.JoinHostPort(r.Host, strconv.FormatUint(uint64(r.HTTP3Port), 10)),
-		Path:   "/ndn",
-	}).String()
+	return json.Marshal(s)
 }

@@ -2,88 +2,60 @@ package model
 
 import "fmt"
 
+// Default ports.
+const (
+	DefaultUDPPort       = 6363
+	DefaultWebSocketPort = 443
+)
+
+// IPFamily indicates an IP address family.
+type IPFamily int
+
+const (
+	IPv4 IPFamily = 4
+	IPv6 IPFamily = 6
+)
+
+// IPFamilies is a list of known IPFamily values.
+var IPFamilies = []IPFamily{IPv4, IPv6}
+
 // TransportType represents a type of transport.
 type TransportType string
 
 const (
-	TransportUDP4       TransportType = "udp4"
-	TransportUDP6       TransportType = "udp6"
-	TransportWebSocket4 TransportType = "wss-ipv4"
-	TransportWebSocket6 TransportType = "wss-ipv6"
-	TransportH3IPv4     TransportType = "http3-ipv4"
-	TransportH3IPv6     TransportType = "http3-ipv6"
+	TransportUDP       TransportType = "udp"
+	TransportWebSocket TransportType = "wss"
+	TransportH3        TransportType = "http3"
 )
 
 // TransportTypes is a list of known TransportType values.
 var TransportTypes = []TransportType{
-	TransportUDP4,
-	TransportUDP6,
-	TransportWebSocket4,
-	TransportWebSocket6,
-	TransportH3IPv4,
-	TransportH3IPv6,
+	TransportUDP,
+	TransportWebSocket,
+	TransportH3,
 }
 
-// RouterString returns a connection string for the router using the given transport.
-// For UDP this is host:port. For WebSockets or HTTP/3 this is URI.
-// Returns empty string if router does not support this transport type.
-func (transport TransportType) RouterString(router Router) string {
-	switch transport {
-	case TransportUDP4, TransportWebSocket4, TransportH3IPv4:
-		if !router.IPv4 {
-			return ""
-		}
-	case TransportUDP6, TransportWebSocket6, TransportH3IPv6:
-		if !router.IPv6 {
-			return ""
-		}
-	}
-
-	switch transport {
-	case TransportUDP4, TransportUDP6:
-		return router.UDPHostPort()
-	case TransportWebSocket4, TransportWebSocket6:
-		return router.WebSocketURI()
-	case TransportH3IPv4, TransportH3IPv6:
-		return router.HTTP3URI()
-	}
-
-	return ""
+// TransportIPFamily is a combination of TransportType and IPFamily.
+type TransportIPFamily struct {
+	TransportType
+	IPFamily
 }
 
-// UpdaterObject returns an object for updating web-api component.
-func (transport TransportType) UpdaterObject(router Router) (o UpdaterObject) {
-	o = UpdaterObject{
-		"id":       fmt.Sprintf("%s:%s", router.ID, transport),
-		"position": router.Position,
+func (tf TransportIPFamily) String() string {
+	switch tf.TransportType {
+	case TransportUDP:
+		return fmt.Sprintf("%s%d", tf.TransportType, tf.IPFamily)
+	default:
+		return fmt.Sprintf("%s-ipv%d", tf.TransportType, tf.IPFamily)
 	}
-
-	switch transport {
-	case TransportUDP4, TransportWebSocket4, TransportH3IPv4:
-		o["ipv4"] = true
-	case TransportUDP6, TransportWebSocket6, TransportH3IPv6:
-		o["ipv6"] = true
-	}
-
-	switch transport {
-	case TransportUDP4, TransportUDP6:
-		if router.UDPPort == 6363 {
-			o["udp"] = router.Host
-		} else {
-			o["udp"] = router.UDPHostPort()
-		}
-	case TransportWebSocket4, TransportWebSocket6:
-		if router.WebSocketPort == 443 {
-			o["wss"] = router.Host
-		} else {
-			o["wss"] = router.WebSocketHostPort()
-		}
-	case TransportH3IPv4, TransportH3IPv6:
-		o["http3"] = router.HTTP3URI()
-	}
-
-	return o
 }
 
-// UpdaterObject is a JSON object sent to API service.
-type UpdaterObject map[string]interface{}
+// TransportTypes is a list of known TransportIPFamily values.
+var TransportIPFamilies = func() (list []TransportIPFamily) {
+	for _, tr := range TransportTypes {
+		for _, af := range IPFamilies {
+			list = append(list, TransportIPFamily{tr, af})
+		}
+	}
+	return list
+}()

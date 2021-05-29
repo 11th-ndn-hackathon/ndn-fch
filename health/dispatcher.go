@@ -33,11 +33,8 @@ func NewHTTPDispatcher(uri, uri3 string) (m Dispatcher, e error) {
 	}
 
 	return Dispatcher{
-		model.TransportUDP4:       c0,
-		model.TransportUDP6:       c0,
-		model.TransportWebSocket4: c0,
-		model.TransportWebSocket6: c0,
-		model.TransportH3IPv4:     c3,
-		model.TransportH3IPv6:     c3,
+		model.TransportUDP:       c0,
+		model.TransportWebSocket: c0,
+		model.TransportH3:        c3,
 	}, nil
 }

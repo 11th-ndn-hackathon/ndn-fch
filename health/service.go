@@ -12,6 +12,7 @@ import (
 // ProbeRequest contains a request for health monitoring probe.
 type ProbeRequest struct {
 	Transport model.TransportType
+	IPFamily  model.IPFamily
 	Routers   []model.Router
 	Name      string
 	Suffix    bool
@@ -19,10 +20,24 @@ type ProbeRequest struct {
 
 // RandomPingServer randomly selects a ping server.
 func (req ProbeRequest) RandomPingServer() ProbeRequest {
-	i := rand.Intn(len(req.Routers))
-	req.Name = path.Join(req.Routers[i].Prefix, "ping")
+	req.Name = ""
+	for attempt := 0; req.Name == "" || attempt < 3; attempt++ {
+		i := rand.Intn(len(req.Routers))
+		req.Name = req.Routers[i].Prefix
+	}
+	if req.Name == "" { // no pingserver available
+		req.Name = "/localhop"
+	}
+	req.Name = path.Join(req.Name, "ping")
 	req.Suffix = true
 	return req
+}
+
+// ProbeRouterResult contains per-router probe result.
+type ProbeRouterResult struct {
+	OK    bool    `json:"ok"`
+	RTT   float64 `json:"rtt,omitempty"` // milliseconds
+	Error string  `json:"error,omitempty"`
 }
 
 // ProbeResponse is a map from router.ID to router probe result.
@@ -45,30 +60,23 @@ func MergeProbeResponse(responses ...ProbeResponse) (best ProbeResponse) {
 	best = make(ProbeResponse)
 	for _, m := range responses {
 		for id, res := range m {
-			prev, ok := best[id]
-			if ok {
-				better := ProbeRouterResult{
-					OK: prev.OK || res.OK,
+			prev, hasPrev := best[id]
+			switch {
+			case !hasPrev:
+				best[id] = res
+			case prev.OK && res.OK:
+				best[id] = ProbeRouterResult{
+					OK:  true,
+					RTT: math.Min(prev.RTT, res.RTT),
 				}
-				if better.OK {
-					better.RTT = math.Min(prev.RTT, res.RTT)
-				} else {
-					better.Error = prev.Error
-				}
-				best[id] = better
-			} else {
+			case prev.OK:
+				best[id] = prev
+			default:
 				best[id] = res
 			}
 		}
 	}
 	return best
-}
-
-// ProbeRouterResult contains per-router probe result.
-type ProbeRouterResult struct {
-	OK    bool    `json:"ok"`
-	RTT   float64 `json:"rtt,omitempty"` // milliseconds
-	Error string  `json:"error,omitempty"`
 }
 
 // Service represents a service that can probe router health.

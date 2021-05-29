@@ -57,19 +57,21 @@ func TestClient(t *testing.T) {
 
 	tests := []struct {
 		tr       model.TransportType
+		af       model.IPFamily
 		expected map[string]bool
 	}{
-		{model.TransportUDP4, map[string]bool{"dual": false, "only4": true, "udp": true}},
-		{model.TransportUDP6, map[string]bool{"dual": false, "only6": true, "udp": true}},
-		{model.TransportWebSocket4, map[string]bool{"dual": false, "only4": true, "wss": true}},
-		{model.TransportWebSocket6, map[string]bool{"dual": false, "only6": true, "wss": true}},
-		{model.TransportH3IPv4, map[string]bool{"dual": false, "only4": true, "h3": true}},
-		{model.TransportH3IPv6, map[string]bool{"dual": false, "only6": true, "h3": true}},
+		{model.TransportUDP, model.IPv4, map[string]bool{"dual": false, "only4": true, "udp": true}},
+		{model.TransportUDP, model.IPv6, map[string]bool{"dual": false, "only6": true, "udp": true}},
+		{model.TransportWebSocket, model.IPv4, map[string]bool{"dual": false, "only4": true, "wss": true}},
+		{model.TransportWebSocket, model.IPv6, map[string]bool{"dual": false, "only6": true, "wss": true}},
+		{model.TransportH3, model.IPv4, map[string]bool{"dual": false, "only4": true, "h3": true}},
+		{model.TransportH3, model.IPv6, map[string]bool{"dual": false, "only6": true, "h3": true}},
 	}
 
 	for _, tt := range tests {
 		res, e := c.Probe(context.TODO(), health.ProbeRequest{
 			Transport: tt.tr,
+			IPFamily:  tt.af,
 			Routers:   mockRouters,
 			Name:      "/n",
 			Suffix:    true,

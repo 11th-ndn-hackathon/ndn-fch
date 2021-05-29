@@ -36,7 +36,9 @@ type testbedNode struct {
 	Position     []float64 `json:"position"`
 	RealPosition []float64 `json:"_real_position"`
 	Prefix       string    `json:"prefix"`
+	NdnUp        bool      `json:"ndn-up"`
 	FchEnabled   bool      `json:"fch-enabled"`
+	WsTls        bool      `json:"ws-tls"`
 }
 
 func (n testbedNode) Router() (r *model.Router) {
@@ -45,10 +47,14 @@ func (n testbedNode) Router() (r *model.Router) {
 	}
 
 	r = &model.Router{
-		ID:            n.ShortName,
-		Prefix:        strings.TrimPrefix(n.Prefix, "ndn:"),
-		UDPPort:       6363,
-		WebSocketPort: 443,
+		ID:      n.ShortName,
+		UDPPort: model.DefaultUDPPort,
+	}
+	if n.NdnUp {
+		r.Prefix = strings.TrimPrefix(n.Prefix, "ndn:")
+	}
+	if n.WsTls {
+		r.WebSocketPort = model.DefaultWebSocketPort
 	}
 
 	u, e := url.Parse(n.Site)

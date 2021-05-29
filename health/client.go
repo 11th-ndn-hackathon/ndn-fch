@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"path"
 	"strings"
+
+	"github.com/11th-ndn-hackathon/ndn-fch/model"
 )
 
 // HTTPClient implements a Service that probes router health via a backend HTTP service.
@@ -21,7 +23,10 @@ var _ Service = &HTTPClient{}
 // Probe implements Service interface.
 func (c *HTTPClient) Probe(ctx context.Context, req ProbeRequest) (res ProbeResponse, e error) {
 	form := url.Values{}
-	form.Set("transport", string(req.Transport))
+	form.Set("transport", model.TransportIPFamily{
+		TransportType: req.Transport,
+		IPFamily:      req.IPFamily,
+	}.String())
 	form.Set("name", req.Name)
 	if req.Suffix {
 		form.Set("suffix", "1")
@@ -29,10 +34,22 @@ func (c *HTTPClient) Probe(ctx context.Context, req ProbeRequest) (res ProbeResp
 
 	reqMap := make(map[string]string)
 	for _, router := range req.Routers {
-		s := req.Transport.RouterString(router)
+		switch req.IPFamily {
+		case model.IPv4:
+			if !router.IPv4 {
+				continue
+			}
+		case model.IPv6:
+			if !router.IPv6 {
+				continue
+			}
+		}
+
+		s := router.TransportString(req.Transport, false)
 		if s == "" {
 			continue
 		}
+
 		reqMap[s] = router.ID
 		form.Add("router", s)
 	}
