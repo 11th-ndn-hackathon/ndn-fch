@@ -1,4 +1,4 @@
-module github.com/11th-ndn-hackathon/ndn-fch-control
+module github.com/11th-ndn-hackathon/ndn-fch
 
 go 1.15
 

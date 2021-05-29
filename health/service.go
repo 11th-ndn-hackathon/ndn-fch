@@ -6,7 +6,7 @@ import (
 	"math/rand"
 	"path"
 
-	"github.com/11th-ndn-hackathon/ndn-fch-control/model"
+	"github.com/11th-ndn-hackathon/ndn-fch/model"
 )
 
 // ProbeRequest contains a request for health monitoring probe.

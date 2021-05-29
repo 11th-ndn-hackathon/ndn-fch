@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/11th-ndn-hackathon/ndn-fch-control/health"
-	"github.com/11th-ndn-hackathon/ndn-fch-control/model"
+	"github.com/11th-ndn-hackathon/ndn-fch/health"
+	"github.com/11th-ndn-hackathon/ndn-fch/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

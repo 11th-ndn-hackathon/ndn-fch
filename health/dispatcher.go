@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/11th-ndn-hackathon/ndn-fch-control/model"
+	"github.com/11th-ndn-hackathon/ndn-fch/model"
 	"go.uber.org/multierr"
 )
 

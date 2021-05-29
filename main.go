@@ -8,8 +8,8 @@ import (
 	"path"
 	"time"
 
-	"github.com/11th-ndn-hackathon/ndn-fch-control/health"
-	"github.com/11th-ndn-hackathon/ndn-fch-control/logging"
+	"github.com/11th-ndn-hackathon/ndn-fch/health"
+	"github.com/11th-ndn-hackathon/ndn-fch/logging"
 	"github.com/pkg/math"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"

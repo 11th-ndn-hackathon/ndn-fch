@@ -9,9 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/11th-ndn-hackathon/ndn-fch-control/health"
-	"github.com/11th-ndn-hackathon/ndn-fch-control/model"
-	"github.com/11th-ndn-hackathon/ndn-fch-control/routerlist"
+	"github.com/11th-ndn-hackathon/ndn-fch/health"
+	"github.com/11th-ndn-hackathon/ndn-fch/model"
+	"github.com/11th-ndn-hackathon/ndn-fch/routerlist"
 	"go.uber.org/zap"
 )
 

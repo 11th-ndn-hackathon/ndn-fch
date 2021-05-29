@@ -1,6 +1,6 @@
 package routerlist
 
-import "github.com/11th-ndn-hackathon/ndn-fch-control/model"
+import "github.com/11th-ndn-hackathon/ndn-fch/model"
 
 // List returns a list of known routers.
 func List() (routers []model.Router) {

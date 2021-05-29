@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/11th-ndn-hackathon/ndn-fch-control/logging"
-	"github.com/11th-ndn-hackathon/ndn-fch-control/model"
+	"github.com/11th-ndn-hackathon/ndn-fch/logging"
+	"github.com/11th-ndn-hackathon/ndn-fch/model"
 	"go.uber.org/zap"
 	"inet.af/netaddr"
 )
