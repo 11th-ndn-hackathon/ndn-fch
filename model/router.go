@@ -21,7 +21,11 @@ type Router struct {
 	HTTP3Port     uint16 `json:"http3-port,omitempty"`
 }
 
-func (r Router) TransportString(tr TransportType, legacySyntax bool) string {
+// ConnectString returns a connection string for the given transport.
+//  - UDP: host:port; if legacySyntax is true and port is default, host.
+//  - WebSocket: URI; if legacySyntax is true and port is default, host.
+//  - HTTP3: URI.
+func (r Router) ConnectString(tr TransportType, legacySyntax bool) string {
 	switch tr {
 	case TransportUDP:
 		if r.UDPPort == 0 {

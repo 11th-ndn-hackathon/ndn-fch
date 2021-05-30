@@ -45,7 +45,7 @@ func (c *HTTPClient) Probe(ctx context.Context, req ProbeRequest) (res ProbeResp
 			}
 		}
 
-		s := router.TransportString(req.Transport, false)
+		s := router.ConnectString(req.Transport, false)
 		if s == "" {
 			continue
 		}

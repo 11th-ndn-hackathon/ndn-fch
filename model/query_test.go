@@ -10,13 +10,14 @@ import (
 func TestQuery(t *testing.T) {
 	assert := assert.New(t)
 
-	list := model.ParseQueries("k=2&cap=udp&cap=http3&ipv4=1&ipv6=1&lon=121.4737&lat=31.2304")
+	list := model.ParseQueries("k=3&cap=udp&k=2&cap=http3&ipv4=1&ipv6=1&lon=121.4737&lat=31.2304")
 	assert.Len(list, 2)
 	for i, q := range list {
-		assert.Equal(2, q.Count)
 		if i == 0 {
+			assert.Equal(3, q.Count)
 			assert.Equal(model.TransportUDP, q.Transport)
 		} else {
+			assert.Equal(2, q.Count)
 			assert.Equal(model.TransportH3, q.Transport)
 		}
 		assert.True(q.IPv4)

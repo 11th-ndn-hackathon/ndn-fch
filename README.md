@@ -10,9 +10,12 @@ To find available NDN routers, send an HTTP GET request to `https://fch.ndn.toda
 Query parameters:
 
 * **cap**: transport protocol.
-  * Values: `udp`, `wss`, or `http3`.
-  * This is repeatable. Default is `udp`.
-* **k**: number of routers (for each transport protocol).
+  * Acceptable values: `udp`, `wss`, or `http3`.
+  * Default is `udp`.
+  * This is repeatable.
+* **k**: number of routers.
+  * If this appears once, the setting applies to every transport protocol.
+  * If this is repeated, each setting applies to successive transport protocols.
 * **ipv4**: `1` to accept IPv4 routers, `0` to reject IPv6 routers.
   * Default is `1`. Set to `0` if client does not have IPv4 connectivity.
 * **ipv6**: `1` to accept IPv6 routers, `0` to reject IPv6 routers.

@@ -49,13 +49,20 @@ func ParseQueries(qs string) (list []Query) {
 		IPv4:      v.Get("ipv4") != "0",
 		IPv6:      v.Get("ipv6") != "0",
 	}
-	if k, e := strconv.ParseUint(v.Get("k"), 10, 32); e == nil {
-		q.Count = math.MaxInt(int(k), q.Count)
-	}
 	q.Position[0], _ = strconv.ParseFloat(v.Get("lon"), 64)
 	q.Position[1], _ = strconv.ParseFloat(v.Get("lat"), 64)
 
-	for _, tr := range v["cap"] {
+	counts := []int{}
+	for _, n := range v["k"] {
+		k, _ := strconv.ParseUint(n, 10, 32)
+		counts = append(counts, math.MaxInt(1, int(k)))
+	}
+	if len(counts) == 0 {
+		counts = append(counts, 1)
+	}
+
+	for i, tr := range v["cap"] {
+		q.Count = counts[i%len(counts)]
 		q.Transport = TransportType(tr)
 		list = append(list, q)
 	}
@@ -63,4 +70,18 @@ func ParseQueries(qs string) (list []Query) {
 		list = append(list, q)
 	}
 	return list
+}
+
+// QueryResponse represents an API response.
+type QueryResponse struct {
+	Updated int64 `json:"updated"` // last update time, milliseconds since epoch
+
+	Routers []QueryResponseRouter `json:"routers"`
+}
+
+// QueryResponseRouter is part of QueryResponse.
+type QueryResponseRouter struct {
+	Transport TransportType `json:"transport"`
+	Connect   string        `json:"connect"`
+	Prefix    string        `json:"prefix,omitempty"`
 }

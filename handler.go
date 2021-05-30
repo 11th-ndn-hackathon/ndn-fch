@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -34,8 +35,8 @@ func init() {
 }
 
 const (
-	mimeJSON = "application/json"
 	mimeText = "text/plain"
+	mimeJSON = "application/json"
 )
 
 var (
@@ -45,17 +46,17 @@ var (
 	}
 )
 
-type queryResponse struct {
-	Updated int64                            `json:"updated"`
-	Routers map[model.TransportType][]string `json:"routers"`
-}
-
 func handleQuery(w http.ResponseWriter, r *http.Request) {
 	avail, updated := availlist.List()
+	if len(avail) == 0 {
+		w.Header().Set("Retry-After", "60")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		return
+	}
+
 	queries := model.ParseQueries(r.URL.RawQuery)
-	response := queryResponse{
+	response := model.QueryResponse{
 		Updated: updated.UnixNano() / int64(time.Millisecond),
-		Routers: map[model.TransportType][]string{},
 	}
 
 	contentType := mimeText
@@ -63,14 +64,16 @@ func handleQuery(w http.ResponseWriter, r *http.Request) {
 		contentType = accept.String()
 	}
 
-	preferLegacySyntax := contentType == mimeText
+	preferLegacySyntax := contentType != mimeJSON
 	for _, q := range queries {
-		res := q.Execute(avail)
-		routers := []string{}
-		for _, r := range res {
-			routers = append(routers, r.TransportString(q.Transport, preferLegacySyntax))
+		avail := q.Execute(avail)
+		for _, r := range avail {
+			response.Routers = append(response.Routers, model.QueryResponseRouter{
+				Transport: q.Transport,
+				Connect:   r.ConnectString(q.Transport, preferLegacySyntax),
+				Prefix:    r.Prefix,
+			})
 		}
-		response.Routers[q.Transport] = routers
 	}
 
 	w.Header().Set("Content-Type", contentType)
@@ -80,13 +83,12 @@ func handleQuery(w http.ResponseWriter, r *http.Request) {
 		j, _ := json.Marshal(response)
 		w.Write(j)
 	case mimeText:
-		delim := []byte{}
-		for _, routers := range response.Routers {
-			for _, router := range routers {
-				w.Write(delim)
-				delim = []byte(",")
-				w.Write([]byte(router))
-			}
+		connectStrings := make([]string, 0, len(response.Routers))
+		for _, router := range response.Routers {
+			connectStrings = append(connectStrings, router.Connect)
 		}
+		cw := csv.NewWriter(w)
+		cw.Write(connectStrings)
+		cw.Flush()
 	}
 }
