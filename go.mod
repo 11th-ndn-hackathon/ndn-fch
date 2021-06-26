@@ -1,6 +1,6 @@
 module github.com/11th-ndn-hackathon/ndn-fch
 
-go 1.15
+go 1.16
 
 require (
 	github.com/asmarques/geodist v1.0.1
@@ -10,5 +10,5 @@ require (
 	github.com/urfave/cli/v2 v2.3.0
 	go.uber.org/multierr v1.7.0
 	go.uber.org/zap v1.16.0
-	inet.af/netaddr v0.0.0-20210521171555-9ee55bc0c50b
+	inet.af/netaddr v0.0.0-20210603230628-bf05d8b52dda
 )

@@ -19,6 +19,13 @@ var yoursunnyRouters = []model.Router{
 		IPv6:      true,
 		HTTP3Port: 6367,
 	}, {
+		ID:       "yoursunny-udp-yul",
+		Position: model.LonLat{-73.8779, 45.3151},
+		Prefix:   "/yoursunny/_/yul",
+		Host:     "yul.udp.g.ndn.today",
+		IPv6:     true,
+		UDPPort:  6363,
+	}, {
 		ID:        "yoursunny-quic-lil",
 		Position:  model.LonLat{3.1778, 50.6927},
 		Prefix:    "/yoursunny/_/lil",
@@ -29,7 +36,7 @@ var yoursunnyRouters = []model.Router{
 	}, {
 		ID:            "yoursunny-ws-muc",
 		Position:      model.LonLat{11.5820, 48.1351},
-		Prefix:        "/yoursunny/_/,muc",
+		Prefix:        "/yoursunny/_/muc",
 		Host:          "muc.ws.g.ndn.today",
 		IPv6:          true,
 		WebSocketPort: 443,

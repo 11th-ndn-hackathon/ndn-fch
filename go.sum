@@ -96,5 +96,5 @@ gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b h1:h8qDotaEPuJATrMmW04NCwg7v
 gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
 honnef.co/go/tools v0.0.1-2019.2.3 h1:3JgtbtFHMiCmsznwGVTUWbgGov+pVqnlf1dEJTNAXeM=
 honnef.co/go/tools v0.0.1-2019.2.3/go.mod h1:a3bituU0lyd329TUQxRnasdCoJDkEUEAqEt0JzvZhAg=
-inet.af/netaddr v0.0.0-20210521171555-9ee55bc0c50b h1:GoOAHwQKK/dkkO/DgT/NQCSNZuXS6tlgLsHiXRakEiY=
-inet.af/netaddr v0.0.0-20210521171555-9ee55bc0c50b/go.mod h1:z0nx+Dh+7N7CC8V5ayHtHGpZpxLQZZxkIaaz6HN65Ls=
+inet.af/netaddr v0.0.0-20210603230628-bf05d8b52dda h1:N1UNOTFyoz00Zw10uv9elxer4zdyqqhsMOOqAFPVTfM=
+inet.af/netaddr v0.0.0-20210603230628-bf05d8b52dda/go.mod h1:z0nx+Dh+7N7CC8V5ayHtHGpZpxLQZZxkIaaz6HN65Ls=
