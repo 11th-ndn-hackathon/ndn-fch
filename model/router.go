@@ -21,10 +21,22 @@ type Router struct {
 	HTTP3Port     uint16 `json:"http3-port,omitempty"`
 }
 
+// HasIPFamily determines whether router supports given IPFamily.
+func (r Router) HasIPFamily(family IPFamily) bool {
+	switch family {
+	case IPv4:
+		return r.IPv4
+	case IPv6:
+		return r.IPv6
+	}
+	return false
+}
+
 // ConnectString returns a connection string for the given transport.
 //  - UDP: host:port; if legacySyntax is true and port is default, host.
 //  - WebSocket: URI; if legacySyntax is true and port is default, host.
 //  - HTTP3: URI.
+// Return empty string if transport is not supported.
 func (r Router) ConnectString(tr TransportType, legacySyntax bool) string {
 	switch tr {
 	case TransportUDP:
@@ -66,15 +78,25 @@ type RouterAvail struct {
 	Available map[TransportIPFamily]bool
 }
 
+// CountAvail returns number of available TransportIPFamily combinations.
+func (r RouterAvail) CountAvail() (n int) {
+	for _, ok := range r.Available {
+		if ok {
+			n++
+		}
+	}
+	return n
+}
+
 // MarshalJSON implements json.Marshaler interface.
 func (r RouterAvail) MarshalJSON() (j []byte, e error) {
 	s := struct {
 		*Router
-		Available []string `json:"available"`
+		Available []TransportIPFamily `json:"available"`
 	}{r.Router, nil}
 	for tf, ok := range r.Available {
 		if ok {
-			s.Available = append(s.Available, tf.String())
+			s.Available = append(s.Available, tf)
 		}
 	}
 	return json.Marshal(s)

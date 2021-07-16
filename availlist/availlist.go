@@ -2,9 +2,9 @@ package availlist
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/11th-ndn-hackathon/ndn-fch/health"
@@ -33,16 +33,30 @@ var logger = logging.New("availlist")
 var (
 	RefreshInterval time.Duration
 	ProbeService    health.Service
-	ProbeCount      int
 )
 
 type availInfo struct {
 	tf model.TransportIPFamily
 	id string
+	ok bool
 }
 
 func refresh(ctx context.Context) {
 	routers := routerlist.List()
+	oldAvail, _ := List()
+	var destinations []string
+	for _, router := range oldAvail {
+		if router.CountAvail() == 0 {
+			continue
+		}
+		destinations = append(destinations, router.Prefix)
+	}
+	if len(destinations) == 0 {
+		for _, router := range routers {
+			destinations = append(destinations, router.Prefix)
+		}
+	}
+
 	availMap := make(map[string]*model.RouterAvail)
 	for _, router := range routers {
 		router := router
@@ -51,71 +65,77 @@ func refresh(ctx context.Context) {
 			Available: map[model.TransportIPFamily]bool{},
 		}
 	}
+	for _, router := range oldAvail {
+		newRouter := availMap[router.ID]
+		if newRouter == nil {
+			continue
+		}
+		for tf, ok := range router.Available {
+			newRouter.Available[tf] = ok
+		}
+	}
+
 	collect := make(chan availInfo)
 	go func() {
 		for ai := range collect {
-			availMap[ai.id].Available[ai.tf] = true
+			availMap[ai.id].Available[ai.tf] = ai.ok
 		}
 	}()
 
 	var wg sync.WaitGroup
-	wg.Add(len(model.TransportIPFamilies))
-	var probeErrors int32
-	for _, tf := range model.TransportIPFamilies {
-		go func(tf model.TransportIPFamily) {
-			defer wg.Done()
-			request := health.ProbeRequest{
-				Transport: tf.TransportType,
-				IPFamily:  tf.IPFamily,
-				Routers:   routers,
+	for _, router := range routers {
+		for _, tf := range model.TransportIPFamilies {
+			connect := router.ConnectString(tf.Transport, false)
+			if !router.HasIPFamily(tf.Family) || connect == "" {
+				continue
 			}
-
-			responses := []health.ProbeResponse{}
-			for i := 0; i < ProbeCount; i++ {
-				request = request.RandomPingServer()
+			time.Sleep(10 * time.Millisecond)
+			wg.Add(1)
+			go func(router model.Router, tf model.TransportIPFamily, connect string) {
+				defer wg.Done()
+				request := health.ProbeRequest{
+					TransportIPFamily: tf,
+					Router:            connect,
+				}
+				for _, dest := range destinations {
+					request.Names = append(request.Names, fmt.Sprintf("%s/ping/ndn-fch-2021/%d", dest, rand.Int()))
+				}
 
 				logEntry := logger.With(
-					zap.String("transport", string(tf.TransportType)),
-					zap.Int("ip-family", int(tf.IPFamily)),
-					zap.Int("i", i),
-					zap.String("target-name", request.Name),
+					zap.String("transport", string(tf.Transport)),
+					zap.Int("ip-family", int(tf.Family)),
+					zap.String("router", connect),
+					zap.Int("name-count", len(request.Names)),
 				)
 
 				response, e := ProbeService.Probe(ctx, request)
 				if e != nil {
 					logEntry.Warn("probe error", zap.Error(e))
-					continue
+					return
 				}
 
-				if ce := logEntry.Check(zap.DebugLevel, "probe response"); ce != nil {
-					nSuccess, nFailure := response.Count()
-					ce.Write(zap.Int("success-count", nSuccess), zap.Int("failure-count", nFailure))
+				if !response.Connected {
+					logEntry.Debug("probe response",
+						zap.Bool("connected", response.Connected),
+						zap.String("connect-error", response.ConnectError),
+					)
+					collect <- availInfo{id: router.ID, tf: tf, ok: false}
+					return
 				}
-				responses = append(responses, response)
-			}
 
-			best := health.MergeProbeResponse(responses...)
-			if nSuccess, nFailure := best.Count(); nSuccess+nFailure == 0 {
-				atomic.AddInt32(&probeErrors, 1)
-				return
-			}
-
-			for _, router := range routers {
-				res, ok := best[router.ID]
-				if !ok || !res.OK {
-					continue
-				}
-				collect <- availInfo{id: router.ID, tf: tf}
-			}
-		}(tf)
+				nSuccess, nFailure := response.Count()
+				verdict := nSuccess*2 > nFailure
+				logEntry.Debug("probe response",
+					zap.Int("success-count", nSuccess),
+					zap.Int("failure-count", nFailure),
+					zap.Bool("verdict", verdict),
+				)
+				collect <- availInfo{id: router.ID, tf: tf, ok: verdict}
+			}(router, tf, connect)
+		}
 	}
 	wg.Wait()
 	close(collect)
-
-	if probeErrors > 0 {
-		logger.Warn("some probes failed, not updating")
-		return
-	}
 
 	listLock.Lock()
 	defer listLock.Unlock()
@@ -124,10 +144,7 @@ func refresh(ctx context.Context) {
 		list = append(list, *router)
 	}
 	listUpdated = time.Now().UTC()
-
-	if ce := logger.Check(zap.InfoLevel, "updating"); ce != nil {
-		ce.Write(zap.Reflect("avail", list))
-	}
+	logger.Info("updating", zap.Any("avail", list))
 }
 
 // RefreshLoop refreshes availList periodically.

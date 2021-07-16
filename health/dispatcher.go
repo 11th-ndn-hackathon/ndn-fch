@@ -17,7 +17,7 @@ var _ Service = Dispatcher{}
 func (m Dispatcher) Probe(ctx context.Context, req ProbeRequest) (res ProbeResponse, e error) {
 	s := m[req.Transport]
 	if s == nil {
-		return nil, fmt.Errorf("no service for %s", req.Transport)
+		return res, fmt.Errorf("no service for %s", req.Transport)
 	}
 	return s.Probe(ctx, req)
 }

@@ -1,7 +1,5 @@
 package model
 
-import "fmt"
-
 // Default ports.
 const (
 	DefaultUDPPort       = 6363
@@ -37,17 +35,8 @@ var TransportTypes = []TransportType{
 
 // TransportIPFamily is a combination of TransportType and IPFamily.
 type TransportIPFamily struct {
-	TransportType
-	IPFamily
-}
-
-func (tf TransportIPFamily) String() string {
-	switch tf.TransportType {
-	case TransportUDP:
-		return fmt.Sprintf("%s%d", tf.TransportType, tf.IPFamily)
-	default:
-		return fmt.Sprintf("%s-ipv%d", tf.TransportType, tf.IPFamily)
-	}
+	Transport TransportType `json:"transport"`
+	Family    IPFamily      `json:"family"`
 }
 
 // TransportTypes is a list of known TransportIPFamily values.

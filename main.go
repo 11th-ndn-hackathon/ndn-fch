@@ -35,12 +35,6 @@ var app = &cli.App{
 			Usage:    "HTTP3 health probe URI",
 			Required: true,
 		},
-		&cli.IntFlag{
-			Name:        "probe-count",
-			Usage:       "number of probe attempts",
-			Destination: &availlist.ProbeCount,
-			Value:       3,
-		},
 	},
 	Before: func(c *cli.Context) (e error) {
 		if availlist.ProbeService, e = health.NewHTTPDispatcher(c.String("probe"), c.String("probe3")); e != nil {

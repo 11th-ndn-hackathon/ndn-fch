@@ -37,5 +37,5 @@ NDN-FCH 2021 contains the following components:
 
 * [frontend](https://github.com/11th-ndn-hackathon/ndn-fch-worker)
 * [API service](https://github.com/11th-ndn-hackathon/ndn-fch)
-* [health probe for UDP and WebSockets](https://github.com/eric135/ndn-reachability)
+* [health probe for UDP & WebSockets](https://github.com/11th-ndn-hackathon/ndn-fch-health)
 * [health probe for HTTP/3](https://github.com/yoursunny/NDN-QUIC-gateway)
