@@ -3,7 +3,6 @@ package routerlist
 import (
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -37,19 +36,15 @@ type testbedNode struct {
 	RealPosition []float64 `json:"_real_position"`
 	Prefix       string    `json:"prefix"`
 	NdnUp        bool      `json:"ndn-up"`
-	FchEnabled   bool      `json:"fch-enabled"`
 	WsTls        bool      `json:"ws-tls"`
 }
 
 func (n testbedNode) Router() (r *model.Router) {
-	if !n.FchEnabled {
-		return nil
-	}
-
 	r = &model.Router{
 		ID:      n.ShortName,
 		UDPPort: model.DefaultUDPPort,
 	}
+
 	if n.NdnUp {
 		r.Prefix = strings.TrimPrefix(n.Prefix, "ndn:")
 	}
@@ -62,6 +57,9 @@ func (n testbedNode) Router() (r *model.Router) {
 		return nil
 	}
 	r.Host = u.Hostname()
+	if r.Host == "0.0.0.0" {
+		return nil
+	}
 
 	switch {
 	case len(n.RealPosition) == 2:
@@ -92,7 +90,7 @@ func fetchTestbedRouters() (routers []model.Router, e error) {
 	if e != nil {
 		return nil, e
 	}
-	body, e := ioutil.ReadAll(response.Body)
+	body, e := io.ReadAll(response.Body)
 	if e != nil {
 		return nil, e
 	}

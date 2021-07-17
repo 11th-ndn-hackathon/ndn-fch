@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"reflect"
 	"sync"
 	"time"
 
@@ -31,7 +32,8 @@ func List() (l []model.RouterAvail, updated time.Time) {
 var logger = logging.New("availlist")
 
 var (
-	RefreshInterval time.Duration
+	RefreshInterval = 5 * time.Minute
+	MaxNames        = 8
 	ProbeService    health.Service
 )
 
@@ -46,14 +48,16 @@ func refresh(ctx context.Context) {
 	oldAvail, _ := List()
 	var destinations []string
 	for _, router := range oldAvail {
-		if router.CountAvail() == 0 {
-			continue
-		}
-		destinations = append(destinations, router.Prefix)
-	}
-	if len(destinations) == 0 {
-		for _, router := range routers {
+		if router.CountAvail() > 0 && router.Prefix != "" {
 			destinations = append(destinations, router.Prefix)
+		}
+	}
+	if len(destinations) <= len(routers)/2 {
+		destinations = nil
+		for _, router := range routers {
+			if router.Prefix != "" {
+				destinations = append(destinations, router.Prefix)
+			}
 		}
 	}
 
@@ -82,14 +86,16 @@ func refresh(ctx context.Context) {
 		}
 	}()
 
+	stepSleep := time.Duration(math.MinInt(int(100*time.Millisecond),
+		int(RefreshInterval)/len(routers)/len(model.TransportIPFamilies)))
 	var wg sync.WaitGroup
 	for _, router := range routers {
 		for _, tf := range model.TransportIPFamilies {
 			connect := router.ConnectString(tf.Transport, false)
-			if !router.HasIPFamily(tf.Family) || connect == "" {
+			if connect == "" || !router.HasIPFamily(tf.Family) {
 				continue
 			}
-			time.Sleep(10 * time.Millisecond)
+			time.Sleep(stepSleep)
 			wg.Add(1)
 			go func(router model.Router, tf model.TransportIPFamily, connect string) {
 				defer wg.Done()
@@ -100,12 +106,16 @@ func refresh(ctx context.Context) {
 				for _, dest := range destinations {
 					request.Names = append(request.Names, fmt.Sprintf("%s/ping/ndn-fch-2021/%d", dest, rand.Int()))
 				}
+				if n := len(request.Names); n > MaxNames {
+					rand.Shuffle(n, reflect.Swapper(request.Names))
+					request.Names = request.Names[:MaxNames]
+				}
 
 				logEntry := logger.With(
 					zap.String("transport", string(tf.Transport)),
 					zap.Int("ip-family", int(tf.Family)),
 					zap.String("router", connect),
-					zap.Int("name-count", len(request.Names)),
+					zap.Strings("names", request.Names),
 				)
 
 				response, e := ProbeService.Probe(ctx, request)

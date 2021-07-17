@@ -23,7 +23,13 @@ var app = &cli.App{
 			Name:        "interval",
 			Usage:       "refresh interval",
 			Destination: &availlist.RefreshInterval,
-			Value:       5 * time.Minute,
+			Value:       availlist.RefreshInterval,
+		},
+		&cli.IntFlag{
+			Name:        "max-names",
+			Usage:       "maximum destination names",
+			Destination: &availlist.MaxNames,
+			Value:       availlist.MaxNames,
 		},
 		&cli.StringFlag{
 			Name:     "probe",
