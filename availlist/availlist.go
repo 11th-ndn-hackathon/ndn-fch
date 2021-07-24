@@ -48,15 +48,15 @@ func refresh(ctx context.Context) {
 	oldAvail, _ := List()
 	var destinations []string
 	for _, router := range oldAvail {
-		if router.CountAvail() > 0 && router.Prefix != "" {
-			destinations = append(destinations, router.Prefix)
+		if a, p := router.CountAvail(), router.Prefix(); a > 0 && p != "" {
+			destinations = append(destinations, p)
 		}
 	}
 	if len(destinations) <= len(routers)/2 {
 		destinations = nil
 		for _, router := range routers {
-			if router.Prefix != "" {
-				destinations = append(destinations, router.Prefix)
+			if p := router.Prefix(); p != "" {
+				destinations = append(destinations, p)
 			}
 		}
 	}
@@ -64,13 +64,13 @@ func refresh(ctx context.Context) {
 	availMap := make(map[string]*model.RouterAvail)
 	for _, router := range routers {
 		router := router
-		availMap[router.ID] = &model.RouterAvail{
-			Router:    &router,
+		availMap[router.ID()] = &model.RouterAvail{
+			Router:    router,
 			Available: map[model.TransportIPFamily]bool{},
 		}
 	}
 	for _, router := range oldAvail {
-		newRouter := availMap[router.ID]
+		newRouter := availMap[router.ID()]
 		if newRouter == nil {
 			continue
 		}
@@ -91,7 +91,7 @@ func refresh(ctx context.Context) {
 	var wg sync.WaitGroup
 	for _, router := range routers {
 		for _, tf := range model.TransportIPFamilies {
-			connect := router.ConnectString(tf.Transport, false)
+			connect := router.ConnectString(tf.Transport)
 			if connect == "" || !router.HasIPFamily(tf.Family) {
 				continue
 			}
@@ -129,7 +129,7 @@ func refresh(ctx context.Context) {
 						zap.Bool("connected", response.Connected),
 						zap.String("connect-error", response.ConnectError),
 					)
-					collect <- availInfo{id: router.ID, tf: tf, ok: false}
+					collect <- availInfo{id: router.ID(), tf: tf, ok: false}
 					return
 				}
 
@@ -140,7 +140,7 @@ func refresh(ctx context.Context) {
 					zap.Int("failure-count", nFailure),
 					zap.Bool("verdict", verdict),
 				)
-				collect <- availInfo{id: router.ID, tf: tf, ok: verdict}
+				collect <- availInfo{id: router.ID(), tf: tf, ok: verdict}
 			}(router, tf, connect)
 		}
 	}

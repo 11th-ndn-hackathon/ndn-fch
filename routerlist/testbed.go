@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io"
 	"math/rand"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -22,11 +23,68 @@ const (
 )
 
 var (
+	testbedLogger      = logging.New("routerlist.testbed")
+	testbedNodesFile   = os.Getenv("FCH_ROUTERLIST_TESTBED_NODES")
 	testbedRouters     []model.Router
 	testbedRoutersLock sync.RWMutex
-	testbedRoutersFile string
-	testbedLogger      = logging.New("routerlist.testbed")
 )
+
+type testbedRouter struct {
+	node    testbedNode
+	host    string
+	hasIPv4 bool
+	hasIPv6 bool
+}
+
+var _ model.Router = testbedRouter{}
+
+func (r testbedRouter) ID() string {
+	return r.node.ShortName
+}
+
+func (r testbedRouter) Position() (pos model.LonLat) {
+	pos[1], pos[0] = r.node.Position[0], r.node.Position[1]
+	return
+}
+
+func (r testbedRouter) Prefix() string {
+	return r.node.Prefix
+}
+
+func (r testbedRouter) HasIPFamily(family model.IPFamily) bool {
+	switch family {
+	case model.IPv4:
+		return r.hasIPv4
+	case model.IPv6:
+		return r.hasIPv6
+	}
+	return false
+}
+
+func (r testbedRouter) ConnectString(tr model.TransportType) string {
+	switch tr {
+	case model.TransportUDP:
+		return net.JoinHostPort(r.host, model.DefaultUDPPort)
+	case model.TransportWebSocket:
+		if !r.node.WsTls {
+			return ""
+		}
+		return (&url.URL{
+			Scheme: "wss",
+			Host:   r.host,
+			Path:   "/ws/",
+		}).String()
+	}
+	return ""
+}
+
+func (r testbedRouter) Neighbors() (links map[string]int) {
+	links = map[string]int{}
+	for _, neighbor := range r.node.Neighbors {
+		links[neighbor] = -1
+	}
+	return links
+}
 
 type testbedNode struct {
 	ShortName    string    `json:"shortname"`
@@ -37,35 +95,31 @@ type testbedNode struct {
 	Prefix       string    `json:"prefix"`
 	NdnUp        bool      `json:"ndn-up"`
 	WsTls        bool      `json:"ws-tls"`
+	Neighbors    []string  `json:"neighbors"`
 }
 
-func (n testbedNode) Router() (r *model.Router) {
-	r = &model.Router{
-		ID:      n.ShortName,
-		UDPPort: model.DefaultUDPPort,
-	}
-
-	if n.NdnUp {
-		r.Prefix = strings.TrimPrefix(n.Prefix, "ndn:")
-	}
-	if n.WsTls {
-		r.WebSocketPort = model.DefaultWebSocketPort
-	}
+func (n testbedNode) Router() (r *testbedRouter) {
+	r = &testbedRouter{}
 
 	u, e := url.Parse(n.Site)
 	if e != nil {
 		return nil
 	}
-	r.Host = u.Hostname()
-	if r.Host == "0.0.0.0" {
+	r.host = u.Hostname()
+	if r.host == "0.0.0.0" {
 		return nil
+	}
+
+	if n.NdnUp {
+		n.Prefix = strings.TrimPrefix(n.Prefix, "ndn:")
+	} else {
+		n.Prefix = ""
 	}
 
 	switch {
 	case len(n.RealPosition) == 2:
-		r.Position[0], r.Position[1] = n.RealPosition[1], n.RealPosition[0]
+		n.Position = n.RealPosition
 	case len(n.Position) == 2:
-		r.Position[0], r.Position[1] = n.Position[1], n.Position[0]
 	default:
 		return nil
 	}
@@ -75,50 +129,62 @@ func (n testbedNode) Router() (r *model.Router) {
 		if e != nil {
 			continue
 		}
-		r.IPv4 = r.IPv4 || ip.Is4()
-		r.IPv6 = r.IPv6 || ip.Is6()
+		r.hasIPv4 = r.hasIPv4 || ip.Is4()
+		r.hasIPv6 = r.hasIPv6 || ip.Is6()
 	}
-	if !r.IPv4 && !r.IPv6 {
+	if !r.hasIPv4 && !r.hasIPv6 {
 		return nil
 	}
 
+	r.node = n
 	return r
 }
 
-func fetchTestbedRouters() (routers []model.Router, e error) {
+func fetchTestbedNodes() (m map[string]testbedNode) {
 	response, e := http.Get(testbedNodesURI)
 	if e != nil {
-		return nil, e
+		testbedLogger.Warn("fetch HTTP", zap.Error(e))
+		return nil
 	}
+	if response.StatusCode != http.StatusOK {
+		testbedLogger.Warn("fetch HTTP", zap.String("status", response.Status))
+		return nil
+	}
+
 	body, e := io.ReadAll(response.Body)
 	if e != nil {
-		return nil, e
+		testbedLogger.Warn("fetch read", zap.Error(e))
+		return nil
 	}
 
-	var m map[string]testbedNode
 	if e := json.Unmarshal(body, &m); e != nil {
-		return nil, e
+		testbedLogger.Warn("fetch decode", zap.Error(e))
+		return nil
 	}
-
-	for _, n := range m {
-		r := n.Router()
-		if r != nil {
-			routers = append(routers, *r)
-		}
-	}
-	return routers, nil
+	return m
 }
 
 func updateTestbedRouters() {
 	time.AfterFunc(time.Duration(600+rand.Intn(60))*time.Second, updateTestbedRouters)
 
-	routers, e := fetchTestbedRouters()
-	if e != nil {
-		testbedLogger.Error("fetch", zap.Error(e))
-		return
+	nodes := fetchTestbedNodes()
+	if len(nodes) == 0 {
+		if e := loadJSONFile(testbedNodesFile, &nodes); e != nil {
+			testbedLogger.Error("load cached", zap.Error(e))
+			return
+		}
+	} else {
+		if e := saveJSONFile(testbedNodesFile, nodes); e != nil {
+			testbedLogger.Warn("save cached", zap.Error(e))
+		}
 	}
-	if e := saveTestbedRouters(routers); e != nil {
-		testbedLogger.Warn("save", zap.Error(e))
+
+	routers := []model.Router{}
+	for _, n := range nodes {
+		r := n.Router()
+		if r != nil {
+			routers = append(routers, *r)
+		}
 	}
 
 	testbedRoutersLock.Lock()
@@ -128,48 +194,4 @@ func updateTestbedRouters() {
 		zap.Int("new-len", len(routers)),
 	)
 	testbedRouters = routers
-}
-
-func loadTestbedRouters() error {
-	file, e := os.Open(testbedRoutersFile)
-	if e != nil {
-		return e
-	}
-	defer file.Close()
-
-	body, e := io.ReadAll(file)
-	if e != nil {
-		return e
-	}
-
-	return json.Unmarshal(body, &testbedRouters)
-}
-
-func saveTestbedRouters(routers []model.Router) error {
-	j, e := json.Marshal(routers)
-	if e != nil {
-		return e
-	}
-
-	f, e := os.Create(testbedRoutersFile)
-	if e != nil {
-		return e
-	}
-	defer f.Close()
-
-	_, e = f.Write(j)
-	return e
-}
-
-func init() {
-	testbedRoutersFile = os.Getenv("FCH_TESTBED_ROUTERS_FILE")
-	if testbedRoutersFile == "" {
-		testbedRoutersFile = "/tmp/testbed-routers.json"
-	}
-
-	if e := loadTestbedRouters(); e != nil {
-		testbedLogger.Warn("load", zap.Error(e), zap.String("filename", testbedRoutersFile))
-	}
-
-	go updateTestbedRouters()
 }

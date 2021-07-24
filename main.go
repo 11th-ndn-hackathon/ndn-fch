@@ -8,6 +8,7 @@ import (
 
 	"github.com/11th-ndn-hackathon/ndn-fch/availlist"
 	"github.com/11th-ndn-hackathon/ndn-fch/health"
+	"github.com/11th-ndn-hackathon/ndn-fch/routerlist"
 	"github.com/urfave/cli/v2"
 )
 
@@ -49,6 +50,7 @@ var app = &cli.App{
 		return nil
 	},
 	Action: func(c *cli.Context) (e error) {
+		routerlist.Load()
 		go availlist.RefreshLoop(c.Context)
 		return cli.Exit(http.ListenAndServe(c.String("listen"), nil), 1)
 	},

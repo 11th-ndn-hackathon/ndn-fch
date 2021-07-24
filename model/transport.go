@@ -1,9 +1,14 @@
 package model
 
+import (
+	"net"
+	"net/url"
+)
+
 // Default ports.
 const (
-	DefaultUDPPort       = 6363
-	DefaultWebSocketPort = 443
+	DefaultUDPPort       = "6363"
+	DefaultWebSocketPort = "443"
 )
 
 // IPFamily indicates an IP address family.
@@ -31,6 +36,23 @@ var TransportTypes = []TransportType{
 	TransportUDP,
 	TransportWebSocket,
 	TransportH3,
+}
+
+// MakeLegacyConnectString converts a connect string to legacy syntax.
+func MakeLegacyConnectString(tr TransportType, connect string) string {
+	switch tr {
+	case TransportUDP:
+		host, port, _ := net.SplitHostPort(connect)
+		if port == DefaultUDPPort {
+			return host
+		}
+	case TransportWebSocket:
+		u, _ := url.Parse(connect)
+		if u.Scheme == "wss" && u.Port() == "" && u.Path == "/ws/" {
+			return u.Hostname()
+		}
+	}
+	return connect
 }
 
 // TransportIPFamily is a combination of TransportType and IPFamily.

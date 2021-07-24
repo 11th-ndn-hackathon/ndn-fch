@@ -30,7 +30,7 @@ func (q Query) Execute(avail []RouterAvail) (res []RouterAvail) {
 		}
 	}
 	sort.Slice(res, func(i, j int) bool {
-		return Distance(q.Position, res[i].Position) < Distance(q.Position, res[j].Position)
+		return Distance(q.Position, res[i].Position()) < Distance(q.Position, res[j].Position())
 	})
 
 	if len(res) > q.Count {

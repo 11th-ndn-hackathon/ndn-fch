@@ -1,75 +1,114 @@
 package routerlist
 
-import "github.com/11th-ndn-hackathon/ndn-fch/model"
+import (
+	"os"
 
-var yoursunnyRouters = []model.Router{
-	{
-		ID:        "yoursunny-quic-lax",
-		Position:  model.LonLat{-118.2437, 34.0522},
-		Prefix:    "/yoursunny/_/lax",
-		Host:      "lax.quic.g.ndn.today",
-		IPv4:      true,
-		HTTP3Port: 6367,
-	}, {
-		ID:        "yoursunny-quic-dal",
-		Position:  model.LonLat{-96.7970, 32.7767},
-		Prefix:    "/yoursunny/_/dal",
-		Host:      "dal.quic.g.ndn.today",
-		IPv4:      true,
-		IPv6:      true,
-		HTTP3Port: 6367,
-	}, {
-		ID:        "yoursunny-quic-mia",
-		Position:  model.LonLat{-80.1918, 25.7617},
-		Prefix:    "/yoursunny/_/mia",
-		Host:      "mia.quic.g.ndn.today",
-		IPv4:      true,
-		IPv6:      true,
-		HTTP3Port: 6367,
-	}, {
-		ID:        "yoursunny-quic-buf",
-		Position:  model.LonLat{-78.8784, 42.8864},
-		Prefix:    "/yoursunny/_/buf",
-		Host:      "buf.quic.g.ndn.today",
-		IPv4:      true,
-		HTTP3Port: 6367,
-	}, {
-		ID:        "yoursunny-quic-lil",
-		Position:  model.LonLat{3.1778, 50.6927},
-		Prefix:    "/yoursunny/_/lil",
-		Host:      "lil.quic.g.ndn.today",
-		IPv4:      true,
-		IPv6:      true,
-		HTTP3Port: 6367,
-	}, {
-		ID:            "yoursunny-ws-muc",
-		Position:      model.LonLat{11.5820, 48.1351},
-		Prefix:        "/yoursunny/_/muc",
-		Host:          "muc.ws.g.ndn.today",
-		IPv6:          true,
-		WebSocketPort: 443,
-	}, {
-		ID:        "yoursunny-quic-waw",
-		Position:  model.LonLat{21.0122, 52.2297},
-		Prefix:    "/yoursunny/_/waw",
-		Host:      "waw.quic.g.ndn.today",
-		IPv6:      true,
-		HTTP3Port: 10207,
-	}, {
-		ID:        "yoursunny-quic-sin",
-		Position:  model.LonLat{103.8198, 1.3521},
-		Prefix:    "/yoursunny/_/sin",
-		Host:      "sin.quic.g.ndn.today",
-		IPv4:      true,
-		IPv6:      true,
-		HTTP3Port: 6367,
-	}, {
-		ID:        "yoursunny-quic-nrt",
-		Position:  model.LonLat{139.7690, 35.6804},
-		Prefix:    "/yoursunny/_/nrt",
-		Host:      "nrt.quic.g.ndn.today",
-		IPv4:      true,
-		IPv6:      true,
-		HTTP3Port: 6367,
-	},
+	"github.com/11th-ndn-hackathon/ndn-fch/logging"
+	"github.com/11th-ndn-hackathon/ndn-fch/model"
+	"go.uber.org/zap"
+)
+
+var (
+	ndn6Logger       = logging.New("routerlist.ndn6")
+	ndn6TopoFilename = os.Getenv("FCH_ROUTERLIST_NDN6_TOPO")
+	ndn6Routers      []model.Router
+)
+
+type ndn6Topo struct {
+	Nodes map[string]*ndn6Node `json:"nodes"`
+	Links []ndn6Link           `json:"links"`
+}
+
+type ndn6Node struct {
+	id       string
+	allLinks map[string]int
+
+	PositionV model.LonLat `json:"position"`
+
+	Public struct {
+		IPv4 bool   `json:"ipv4,omitempty"`
+		IPv6 bool   `json:"ipv6,omitempty"`
+		WSS  string `json:"wss,omitempty"`
+		H3   string `json:"h3,omitempty"`
+	} `json:"public"`
+
+	Links []struct {
+		ID   string `json:"remote_id"`
+		Cost int    `json:"cost"`
+	} `json:"links"`
+}
+
+var _ model.Router = ndn6Node{}
+
+func (n ndn6Node) ID() string {
+	return n.id
+}
+
+func (n ndn6Node) Position() (pos model.LonLat) {
+	return n.PositionV
+}
+
+func (r ndn6Node) Prefix() string {
+	return "/yoursunny/_/" + r.id
+}
+
+func (r ndn6Node) HasIPFamily(family model.IPFamily) bool {
+	switch family {
+	case model.IPv4:
+		return r.Public.IPv4
+	case model.IPv6:
+		return r.Public.IPv6
+	}
+	return false
+}
+
+func (r ndn6Node) ConnectString(tr model.TransportType) string {
+	switch tr {
+	case model.TransportWebSocket:
+		return r.Public.WSS
+	case model.TransportH3:
+		return r.Public.H3
+	}
+	return ""
+}
+
+func (r ndn6Node) Neighbors() (links map[string]int) {
+	return r.allLinks
+}
+
+type ndn6Link struct {
+	Src  string `json:"src"`
+	Dst  string `json:"dst"`
+	Cost int    `json:"cost"`
+}
+
+func loadNDN6Topo() {
+	var topo ndn6Topo
+	if e := loadJSONFile(ndn6TopoFilename, &topo); e != nil {
+		ndn6Logger.Error("load error", zap.Error(e))
+		return
+	}
+
+	for id, node := range topo.Nodes {
+		node.id = id
+		node.allLinks = map[string]int{}
+		for _, link := range node.Links {
+			node.allLinks[link.ID] = link.Cost
+		}
+	}
+	for _, link := range topo.Links {
+		nodeA, nodeB := topo.Nodes[link.Src], topo.Nodes[link.Dst]
+		if nodeA == nil || nodeB == nil {
+			continue
+		}
+		nodeA.allLinks[nodeB.id] = link.Cost
+		nodeB.allLinks[nodeA.id] = link.Cost
+	}
+
+	ndn6Routers = nil
+	for _, node := range topo.Nodes {
+		ndn6Routers = append(ndn6Routers, node)
+	}
+
+	ndn6Logger.Info("load success", zap.Int("count", len(ndn6Routers)))
 }
