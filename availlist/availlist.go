@@ -12,7 +12,7 @@ import (
 	"github.com/11th-ndn-hackathon/ndn-fch/logging"
 	"github.com/11th-ndn-hackathon/ndn-fch/model"
 	"github.com/11th-ndn-hackathon/ndn-fch/routerlist"
-	"github.com/pkg/math"
+	"github.com/zyedidia/generic"
 	"go.uber.org/zap"
 )
 
@@ -86,8 +86,8 @@ func refresh(ctx context.Context) {
 		}
 	}()
 
-	stepSleep := time.Duration(math.MinInt(int(100*time.Millisecond),
-		int(RefreshInterval)/len(routers)/len(model.TransportIPFamilies)))
+	stepSleep := generic.Min(100*time.Millisecond,
+		RefreshInterval/time.Duration(len(routers)*len(model.TransportIPFamilies)))
 	var wg sync.WaitGroup
 	for _, router := range routers {
 		for _, tf := range model.TransportIPFamilies {
@@ -159,7 +159,7 @@ func refresh(ctx context.Context) {
 
 // RefreshLoop refreshes availList periodically.
 func RefreshLoop(ctx context.Context) {
-	RefreshInterval = time.Duration(math.MaxInt64(int64(RefreshInterval), int64(time.Minute)))
+	RefreshInterval = generic.Max(RefreshInterval, time.Minute)
 
 	refreshOnce := func() {
 		ctx, cancel := context.WithTimeout(ctx, RefreshInterval*9/10)

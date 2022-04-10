@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"net"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"os"
 	"strings"
@@ -15,7 +16,6 @@ import (
 	"github.com/11th-ndn-hackathon/ndn-fch/logging"
 	"github.com/11th-ndn-hackathon/ndn-fch/model"
 	"go.uber.org/zap"
-	"inet.af/netaddr"
 )
 
 const (
@@ -125,7 +125,7 @@ func (n testbedNode) Router() (r *testbedRouter) {
 	}
 
 	for _, ipStr := range n.IPAddresses {
-		ip, e := netaddr.ParseIP(ipStr)
+		ip, e := netip.ParseAddr(ipStr)
 		if e != nil {
 			continue
 		}

@@ -2,10 +2,10 @@ package model
 
 import (
 	"net/url"
-	"sort"
 	"strconv"
 
-	"github.com/pkg/math"
+	"github.com/zyedidia/generic"
+	"golang.org/x/exp/slices"
 )
 
 // Query represents an API query.
@@ -29,8 +29,8 @@ func (q Query) Execute(avail []RouterAvail) (res []RouterAvail) {
 			res = append(res, router)
 		}
 	}
-	sort.Slice(res, func(i, j int) bool {
-		return Distance(q.Position, res[i].Position()) < Distance(q.Position, res[j].Position())
+	slices.SortFunc(res, func(a, b RouterAvail) bool {
+		return Distance(q.Position, a.Position()) < Distance(q.Position, b.Position())
 	})
 
 	if len(res) > q.Count {
@@ -55,7 +55,7 @@ func ParseQueries(qs string) (list []Query) {
 	counts := []int{}
 	for _, n := range v["k"] {
 		k, _ := strconv.ParseUint(n, 10, 32)
-		counts = append(counts, math.MaxInt(1, int(k)))
+		counts = append(counts, generic.Max(1, int(k)))
 	}
 	if len(counts) == 0 {
 		counts = append(counts, 1)
