@@ -22,7 +22,7 @@ func (m Dispatcher) Probe(ctx context.Context, req ProbeRequest) (res ProbeRespo
 	return s.Probe(ctx, req)
 }
 
-// NewHTTPDispatcher creates a Multi of HTTPClients from base URI.
+// NewHTTPDispatcher creates a Dispatcher of HTTPClients from base URI.
 //  uri: base URI for UDP and WebSockets probe.
 //  uri3: base URI for HTTP/3 probe.
 func NewHTTPDispatcher(uri, uri3 string) (m Dispatcher, e error) {

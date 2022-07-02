@@ -16,7 +16,7 @@ Query parameters:
 * **k**: number of routers.
   * If this appears once, the setting applies to every transport protocol.
   * If this is repeated, each setting applies to successive transport protocols.
-* **ipv4**: `1` to accept IPv4 routers, `0` to reject IPv6 routers.
+* **ipv4**: `1` to accept IPv4 routers, `0` to reject IPv4 routers.
   * Default is `1`. Set to `0` if client does not have IPv4 connectivity.
 * **ipv6**: `1` to accept IPv6 routers, `0` to reject IPv6 routers.
   * Default is `1` if the request is received over IPv6, otherwise `0`.

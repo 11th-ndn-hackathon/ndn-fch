@@ -2,7 +2,7 @@ package model
 
 import "github.com/asmarques/geodist"
 
-// LonLat is a tuple of longitute,latitude in GeoJSON format.
+// LonLat is a tuple of longitude,latitude in GeoJSON format.
 // https://datatracker.ietf.org/doc/html/rfc7946#section-3.1.1
 type LonLat [2]float64
 

@@ -14,6 +14,7 @@ const (
 // IPFamily indicates an IP address family.
 type IPFamily int
 
+// IPFamily values.
 const (
 	IPv4 IPFamily = 4
 	IPv6 IPFamily = 6
@@ -25,6 +26,7 @@ var IPFamilies = []IPFamily{IPv4, IPv6}
 // TransportType represents a type of transport.
 type TransportType string
 
+// TransportType values.
 const (
 	TransportUDP       TransportType = "udp"
 	TransportWebSocket TransportType = "wss"
