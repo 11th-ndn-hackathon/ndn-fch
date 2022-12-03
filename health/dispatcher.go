@@ -23,8 +23,9 @@ func (m Dispatcher) Probe(ctx context.Context, req ProbeRequest) (res ProbeRespo
 }
 
 // NewHTTPDispatcher creates a Dispatcher of HTTPClients from base URI.
-//  uri: base URI for UDP and WebSockets probe.
-//  uri3: base URI for HTTP/3 probe.
+//
+//	uri: base URI for UDP and WebSockets probe.
+//	uri3: base URI for HTTP/3 probe.
 func NewHTTPDispatcher(uri, uri3 string) (m Dispatcher, e error) {
 	c0, e0 := NewHTTPClient(uri)
 	c3, e3 := NewHTTPClient(uri3)
