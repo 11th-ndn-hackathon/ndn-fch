@@ -50,6 +50,7 @@ func handleQuery(w http.ResponseWriter, r *http.Request) {
 	queries := model.ParseQueries(r.URL.RawQuery)
 	response := model.QueryResponse{
 		Updated: updated.UnixNano() / int64(time.Millisecond),
+		Routers: []model.QueryResponseRouter{},
 	}
 
 	contentType := mimeText

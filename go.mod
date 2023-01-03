@@ -6,11 +6,11 @@ require (
 	github.com/asmarques/geodist v1.0.1
 	github.com/elnormous/contenttype v1.0.3
 	github.com/stretchr/testify v1.8.1
-	github.com/urfave/cli/v2 v2.23.5
+	github.com/urfave/cli/v2 v2.23.7
 	github.com/zyedidia/generic v1.2.0
-	go.uber.org/multierr v1.8.0
+	go.uber.org/multierr v1.9.0
 	go.uber.org/zap v1.24.0
-	golang.org/x/exp v0.0.0-20221126150942-6ab00d035af9
+	golang.org/x/exp v0.0.0-20221230185412-738e83a70c30
 )
 
 require (

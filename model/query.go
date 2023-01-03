@@ -3,6 +3,7 @@ package model
 import (
 	"net/url"
 	"strconv"
+	"strings"
 
 	"github.com/zyedidia/generic"
 	"golang.org/x/exp/slices"
@@ -15,17 +16,27 @@ type Query struct {
 	IPv4      bool
 	IPv6      bool
 	Position  LonLat
+	Network   string
 }
 
-func (q Query) match(router RouterAvail) bool {
-	return (q.IPv4 && router.Available[TransportIPFamily{q.Transport, IPv4}]) ||
-		(q.IPv6 && router.Available[TransportIPFamily{q.Transport, IPv6}])
+func (q Query) matchTransport(router RouterAvail) bool {
+	switch {
+	case q.IPv4 && router.Available[TransportIPFamily{q.Transport, IPv4}]:
+		return true
+	case q.IPv6 && router.Available[TransportIPFamily{q.Transport, IPv6}]:
+		return true
+	}
+	return false
+}
+
+func (q Query) matchNetwork(router RouterAvail) bool {
+	return q.Network == "" || strings.HasPrefix(router.Prefix(), q.Network)
 }
 
 // Execute executes a query.
 func (q Query) Execute(avail []RouterAvail) (res []RouterAvail) {
 	for _, router := range avail {
-		if q.match(router) {
+		if q.matchTransport(router) && q.matchNetwork(router) {
 			res = append(res, router)
 		}
 	}
@@ -51,6 +62,9 @@ func ParseQueries(qs string) (list []Query) {
 	}
 	q.Position[0], _ = strconv.ParseFloat(v.Get("lon"), 64)
 	q.Position[1], _ = strconv.ParseFloat(v.Get("lat"), 64)
+	if network := strings.Trim(v.Get("network"), "/"); network != "" {
+		q.Network = "/" + network + "/"
+	}
 
 	counts := []int{}
 	for _, n := range v["k"] {

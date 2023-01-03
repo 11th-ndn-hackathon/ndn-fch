@@ -22,6 +22,9 @@ Query parameters:
   * Default is `1` if the request is received over IPv6, otherwise `0`.
 * **lon** and **lat**: client position.
   * Default is IP geolocation.
+* **network**: desired network.
+  * Acceptable values: `ndn`, `yoursunny`.
+  * Default is any.
 
 Response format:
 
