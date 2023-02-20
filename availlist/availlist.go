@@ -45,6 +45,7 @@ type availInfo struct {
 
 func refresh(ctx context.Context) {
 	routers := routerlist.List()
+	rand.Shuffle(len(routers), reflect.Swapper(routers))
 	oldAvail, _ := List()
 	var destinations []string
 	for _, router := range oldAvail {
