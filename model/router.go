@@ -13,15 +13,12 @@ type Router interface {
 	// Return empty string if pingserver is unavailable.
 	Prefix() string
 
-	// HasIPFamily determines whether IP address family is supported.
-	HasIPFamily(family IPFamily) bool
-
 	// ConnectString returns a connection string for the given transport.
 	//  - UDP: host:port.
 	//  - WebSocket: URI.
 	//  - HTTP3: URI.
-	// Return empty string if transport is not supported.
-	ConnectString(tr TransportType) string
+	// Return empty string if transport or IP family is not supported.
+	ConnectString(tf TransportIPFamily) string
 
 	// Neighbor returns a map of neighbor ID and link cost.
 	Neighbors() map[string]int

@@ -62,7 +62,7 @@ func handleQuery(w http.ResponseWriter, r *http.Request) {
 	for _, q := range queries {
 		avail := q.Execute(avail)
 		for _, r := range avail {
-			connect := r.ConnectString(q.Transport)
+			connect := r.ConnectString(model.TransportIPFamily{Transport: q.Transport, Family: 0})
 			if preferLegacySyntax {
 				connect = model.MakeLegacyConnectString(q.Transport, connect)
 			}

@@ -2,10 +2,8 @@
 package main
 
 import (
-	"math/rand"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/11th-ndn-hackathon/ndn-fch/availlist"
 	"github.com/11th-ndn-hackathon/ndn-fch/health"
@@ -58,6 +56,5 @@ var app = &cli.App{
 }
 
 func main() {
-	rand.Seed(time.Now().UnixNano())
 	app.Run(os.Args)
 }

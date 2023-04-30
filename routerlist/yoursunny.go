@@ -1,11 +1,14 @@
 package routerlist
 
 import (
+	"fmt"
 	"os"
+	"strings"
 
 	"github.com/11th-ndn-hackathon/ndn-fch/logging"
 	"github.com/11th-ndn-hackathon/ndn-fch/model"
 	"go.uber.org/zap"
+	"golang.org/x/exp/slices"
 )
 
 var (
@@ -15,22 +18,21 @@ var (
 )
 
 type ndn6Topo struct {
-	Nodes map[string]*ndn6Node `json:"nodes"`
-	Links []ndn6Link           `json:"links"`
+	Network      string               `json:"network"`
+	Site         string               `json:"site"`
+	HostnameWSS  string               `json:"hostname_wss"`
+	HostnameQUIC string               `json:"hostname_quic"`
+	Nodes        map[string]*ndn6Node `json:"nodes"`
+	Links        []ndn6Link           `json:"links"`
 }
 
 type ndn6Node struct {
+	topo     *ndn6Topo
 	id       string
 	allLinks map[string]int
 
 	PositionV model.LonLat `json:"position"`
-
-	Public struct {
-		IPv4 bool   `json:"ipv4,omitempty"`
-		IPv6 bool   `json:"ipv6,omitempty"`
-		WSS  string `json:"wss,omitempty"`
-		H3   string `json:"h3,omitempty"`
-	} `json:"public"`
+	Public    []string     `json:"public"`
 
 	Links []struct {
 		ID   string `json:"remote_id"`
@@ -49,25 +51,19 @@ func (n ndn6Node) Position() (pos model.LonLat) {
 }
 
 func (r ndn6Node) Prefix() string {
-	return "/yoursunny/_/" + r.id
+	return r.topo.Site + "/" + r.id
 }
 
-func (r ndn6Node) HasIPFamily(family model.IPFamily) bool {
-	switch family {
-	case model.IPv4:
-		return r.Public.IPv4
-	case model.IPv6:
-		return r.Public.IPv6
+func (r ndn6Node) ConnectString(tf model.TransportIPFamily) string {
+	if !slices.Contains(r.Public, fmt.Sprintf("%s:%d", tf.Transport, tf.Family)) {
+		return ""
 	}
-	return false
-}
 
-func (r ndn6Node) ConnectString(tr model.TransportType) string {
-	switch tr {
+	switch tf.Transport {
 	case model.TransportWebSocket:
-		return r.Public.WSS
+		return strings.ReplaceAll(r.topo.HostnameWSS, "%", r.id)
 	case model.TransportH3:
-		return r.Public.H3
+		return strings.ReplaceAll(r.topo.HostnameQUIC, "%", r.id)
 	}
 	return ""
 }
@@ -90,6 +86,7 @@ func loadNDN6Topo() {
 	}
 
 	for id, node := range topo.Nodes {
+		node.topo = &topo
 		node.id = id
 		node.allLinks = map[string]int{}
 		for _, link := range node.Links {

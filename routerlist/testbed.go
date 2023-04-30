@@ -51,18 +51,19 @@ func (r testbedRouter) Prefix() string {
 	return r.node.Prefix
 }
 
-func (r testbedRouter) HasIPFamily(family model.IPFamily) bool {
-	switch family {
+func (r testbedRouter) ConnectString(tf model.TransportIPFamily) string {
+	switch tf.Family {
 	case model.IPv4:
-		return r.hasIPv4
+		if !r.hasIPv4 {
+			return ""
+		}
 	case model.IPv6:
-		return r.hasIPv6
+		if !r.hasIPv6 {
+			return ""
+		}
 	}
-	return false
-}
 
-func (r testbedRouter) ConnectString(tr model.TransportType) string {
-	switch tr {
+	switch tf.Transport {
 	case model.TransportUDP:
 		return net.JoinHostPort(r.host, model.DefaultUDPPort)
 	case model.TransportWebSocket:

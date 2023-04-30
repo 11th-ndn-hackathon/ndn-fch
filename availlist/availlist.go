@@ -92,8 +92,8 @@ func refresh(ctx context.Context) {
 	var wg sync.WaitGroup
 	for _, router := range routers {
 		for _, tf := range model.TransportIPFamilies {
-			connect := router.ConnectString(tf.Transport)
-			if connect == "" || !router.HasIPFamily(tf.Family) {
+			connect := router.ConnectString(tf)
+			if connect == "" {
 				continue
 			}
 			time.Sleep(stepSleep)

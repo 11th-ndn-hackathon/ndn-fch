@@ -4,12 +4,12 @@ go 1.20
 
 require (
 	github.com/asmarques/geodist v1.0.1
-	github.com/elnormous/contenttype v1.0.3
-	github.com/stretchr/testify v1.8.1
-	github.com/urfave/cli/v2 v2.24.4
+	github.com/elnormous/contenttype v1.0.4
+	github.com/stretchr/testify v1.8.2
+	github.com/urfave/cli/v2 v2.25.1
 	github.com/zyedidia/generic v1.2.1
 	go.uber.org/zap v1.24.0
-	golang.org/x/exp v0.0.0-20230213192124-5e25df0256eb
+	golang.org/x/exp v0.0.0-20230425010034-47ecfdc1ba53
 )
 
 require (
