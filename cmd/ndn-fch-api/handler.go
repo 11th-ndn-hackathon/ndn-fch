@@ -60,9 +60,14 @@ func handleQuery(w http.ResponseWriter, r *http.Request) {
 
 	preferLegacySyntax := contentType != mimeJSON
 	for _, q := range queries {
-		avail := q.Execute(avail)
-		for _, r := range avail {
-			connect := r.ConnectString(model.TransportIPFamily{Transport: q.Transport, Family: 0})
+		for _, r := range q.Execute(avail) {
+			connect := r.ConnectString(model.TransportIPFamily{Transport: q.Transport, Family: 4})
+			if connect == "" {
+				connect = r.ConnectString(model.TransportIPFamily{Transport: q.Transport, Family: 6})
+			}
+			if connect == "" {
+				continue
+			}
 			if preferLegacySyntax {
 				connect = model.MakeLegacyConnectString(q.Transport, connect)
 			}
