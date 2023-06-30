@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	testbedNodesURI = "https://ndndemo.arl.wustl.edu/testbed-nodes.json"
+	testbedNodesURI = "https://wundngw.wustl.edu/ndnstatus/testbed-nodes.json"
 )
 
 var (
