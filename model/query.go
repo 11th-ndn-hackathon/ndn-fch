@@ -1,12 +1,11 @@
 package model
 
 import (
+	"cmp"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
-
-	"github.com/zyedidia/generic"
-	"golang.org/x/exp/slices"
 )
 
 // Query represents an API query.
@@ -40,8 +39,8 @@ func (q Query) Execute(avail []RouterAvail) (res []RouterAvail) {
 			res = append(res, router)
 		}
 	}
-	slices.SortFunc(res, func(a, b RouterAvail) bool {
-		return Distance(q.Position, a.Position()) < Distance(q.Position, b.Position())
+	slices.SortFunc(res, func(a, b RouterAvail) int {
+		return cmp.Compare(Distance(q.Position, a.Position()), Distance(q.Position, b.Position()))
 	})
 
 	if len(res) > q.Count {
@@ -69,7 +68,7 @@ func ParseQueries(qs string) (list []Query) {
 	counts := []int{}
 	for _, n := range v["k"] {
 		k, _ := strconv.ParseUint(n, 10, 32)
-		counts = append(counts, generic.Max(1, int(k)))
+		counts = append(counts, max(1, int(k)))
 	}
 	if len(counts) == 0 {
 		counts = append(counts, 1)

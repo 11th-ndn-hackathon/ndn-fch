@@ -3,12 +3,12 @@ package routerlist
 import (
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/11th-ndn-hackathon/ndn-fch/logging"
 	"github.com/11th-ndn-hackathon/ndn-fch/model"
 	"go.uber.org/zap"
-	"golang.org/x/exp/slices"
 )
 
 var (
