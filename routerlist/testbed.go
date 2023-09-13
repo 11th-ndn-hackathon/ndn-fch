@@ -67,9 +67,6 @@ func (r testbedRouter) ConnectString(tf model.TransportIPFamily) string {
 	case model.TransportUDP:
 		return net.JoinHostPort(r.host, model.DefaultUDPPort)
 	case model.TransportWebSocket:
-		if !r.node.WsTls {
-			return ""
-		}
 		return (&url.URL{
 			Scheme: "wss",
 			Host:   r.host,
@@ -94,8 +91,6 @@ type testbedNode struct {
 	Position     []float64 `json:"position"`
 	RealPosition []float64 `json:"_real_position"`
 	Prefix       string    `json:"prefix"`
-	NdnUp        bool      `json:"ndn-up"`
-	WsTls        bool      `json:"ws-tls"`
 	Neighbors    []string  `json:"neighbors"`
 }
 
@@ -111,11 +106,7 @@ func (n testbedNode) Router() (r *testbedRouter) {
 		return nil
 	}
 
-	if n.NdnUp {
-		n.Prefix = strings.TrimPrefix(n.Prefix, "ndn:")
-	} else {
-		n.Prefix = ""
-	}
+	n.Prefix = strings.TrimPrefix(n.Prefix, "ndn:")
 
 	switch {
 	case len(n.RealPosition) == 2:
