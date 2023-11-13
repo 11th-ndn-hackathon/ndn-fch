@@ -9,6 +9,7 @@ import (
 	"net/netip"
 	"net/url"
 	"os"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -25,15 +26,17 @@ const (
 var (
 	testbedLogger      = logging.New("routerlist.testbed")
 	testbedNodesFile   = os.Getenv("FCH_ROUTERLIST_TESTBED_NODES")
+	testbedBadList     = strings.Split(os.Getenv("FCH_ROUTERLIST_TESTBED_BAD"), ",")
 	testbedRouters     []model.Router
 	testbedRoutersLock sync.RWMutex
 )
 
 type testbedRouter struct {
-	node    testbedNode
-	host    string
-	hasIPv4 bool
-	hasIPv6 bool
+	node      testbedNode
+	host      string
+	hasIPv4   bool
+	hasIPv6   bool
+	neighbors map[string]int
 }
 
 var _ model.Router = testbedRouter{}
@@ -76,12 +79,8 @@ func (r testbedRouter) ConnectString(tf model.TransportIPFamily) string {
 	return ""
 }
 
-func (r testbedRouter) Neighbors() (links map[string]int) {
-	links = map[string]int{}
-	for _, neighbor := range r.node.Neighbors {
-		links[neighbor] = -1
-	}
-	return links
+func (r testbedRouter) Neighbors() map[string]int {
+	return r.neighbors
 }
 
 type testbedNode struct {
@@ -105,6 +104,9 @@ func (n testbedNode) Router() (r *testbedRouter) {
 	if r.host == "0.0.0.0" {
 		return nil
 	}
+	if slices.Contains(testbedBadList, n.ShortName) {
+		return nil
+	}
 
 	n.Prefix = strings.TrimPrefix(n.Prefix, "ndn:")
 
@@ -126,6 +128,13 @@ func (n testbedNode) Router() (r *testbedRouter) {
 	}
 	if !r.hasIPv4 && !r.hasIPv6 {
 		return nil
+	}
+
+	r.neighbors = map[string]int{}
+	for _, neighbor := range n.Neighbors {
+		if !slices.Contains(testbedBadList, neighbor) {
+			r.neighbors[neighbor] = -1
+		}
 	}
 
 	r.node = n
