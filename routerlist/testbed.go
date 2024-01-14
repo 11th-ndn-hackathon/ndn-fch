@@ -16,17 +16,21 @@ import (
 
 	"github.com/11th-ndn-hackathon/ndn-fch/logging"
 	"github.com/11th-ndn-hackathon/ndn-fch/model"
+	"github.com/caitlinelfring/go-env-default"
 	"go.uber.org/zap"
 )
 
-const (
-	testbedNodesURI = "https://wundngw.wustl.edu/ndnstatus/testbed-nodes.json"
-)
-
 var (
-	testbedLogger      = logging.New("routerlist.testbed")
-	testbedNodesFile   = os.Getenv("FCH_ROUTERLIST_TESTBED_NODES")
-	testbedBadList     = strings.Split(os.Getenv("FCH_ROUTERLIST_TESTBED_BAD"), ",")
+	testbedLogger    = logging.New("routerlist.testbed")
+	testbedNodesURI  = env.GetDefault("FCH_ROUTERLIST_TESTBED_URI", "https://testbed-status.named-data.net/testbed-nodes.json")
+	testbedNodesFile = env.GetDefault("FCH_ROUTERLIST_TESTBED_NODES", "./fch-testbed-nodes.json")
+	testbedBadList   = func() []string {
+		if s := os.Getenv("FCH_ROUTERLIST_TESTBED_BAD"); s != "" {
+			return strings.Split(s, ",")
+		}
+		return []string{}
+	}()
+
 	testbedRouters     []model.Router
 	testbedRoutersLock sync.RWMutex
 )
@@ -101,10 +105,7 @@ func (n testbedNode) Router() (r *testbedRouter) {
 		return nil
 	}
 	r.host = u.Hostname()
-	if r.host == "0.0.0.0" {
-		return nil
-	}
-	if slices.Contains(testbedBadList, n.ShortName) {
+	if r.host == "0.0.0.0" || slices.Contains(testbedBadList, n.ShortName) {
 		return nil
 	}
 

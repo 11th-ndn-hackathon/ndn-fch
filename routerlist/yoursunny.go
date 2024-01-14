@@ -2,18 +2,18 @@ package routerlist
 
 import (
 	"fmt"
-	"os"
 	"slices"
 	"strings"
 
 	"github.com/11th-ndn-hackathon/ndn-fch/logging"
 	"github.com/11th-ndn-hackathon/ndn-fch/model"
+	"github.com/caitlinelfring/go-env-default"
 	"go.uber.org/zap"
 )
 
 var (
 	ndn6Logger       = logging.New("routerlist.ndn6")
-	ndn6TopoFilename = os.Getenv("FCH_ROUTERLIST_NDN6_TOPO")
+	ndn6TopoFilename = env.GetDefault("FCH_ROUTERLIST_NDN6_TOPO", "./fch-ndn6-topo.json")
 	ndn6Routers      []model.Router
 )
 
