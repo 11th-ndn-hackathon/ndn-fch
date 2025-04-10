@@ -3,6 +3,8 @@
 NDN-FCH 2021 is an online service for finding available Named Data Networking routers near the client on the global NDN testbed and other connected networks.
 This project started as **NDN-FCH: The Big Rewrite™** at [11th NDN hackathon](https://11th-ndn-hackathon.named-data.net), and continues to be developed and maintained.
 
+![NDN-FCH 2021 logo](logo.svg)
+
 ## API
 
 To find available NDN routers, send an HTTP GET request to `https://fch.ndn.today/`.
